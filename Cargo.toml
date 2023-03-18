@@ -1,0 +1,21 @@
+[workspace]
+members = ["nade", "nade-macro"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["zihan <ZihanType@proton.me>"]
+license = "MIT/Apache-2.0"
+homepage = "https://github.com/ZihanType/nade"
+repository = "https://github.com/ZihanType/nade"
+include = ["src/**/*", "Cargo.toml"]
+
+[workspace.dependencies]
+nade-macro = { version = "0.1.0", path = "./nade-macro" }
+
+prettyplease = { version = "0.1.25", default-features = false }
+proc-macro2 = { version = "1", default-features = false }
+quote = { version = "1", default-features = false }
+syn = { version = "1", default-features = false }
+trybuild = { version = "1", default-features = false }
+macro-v = { version = "0.1.2", default-features = false }

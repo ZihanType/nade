@@ -1,7 +1,7 @@
 [package]
 name = "nade"
 description = "Adding named and default arguments to Rust functions"
-keywords = ["macro", "named", "default arguments"]
+keywords = ["macro", "named", "default"]
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

@@ -69,7 +69,7 @@ impl<T: ToTokens> MaybeStartsWithDollar<T> {
             MaybeStartsWithDollar::StartsWithDollar(s) => Ok(s),
             MaybeStartsWithDollar::Normal(n) => Err(syn::Error::new(
                 n.inner.span(),
-                "expected starting with `$crate::`",
+                "expected starting with `$crate`",
             )),
         }
     }
@@ -82,12 +82,12 @@ pub(crate) struct StartsWithDollar<T> {
 
 impl<T: Parse> Parse for StartsWithDollar<T> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        if input.peek(Token![crate]) && input.peek2(Token![::]) {
+        if input.peek(Token![crate]) {
             Ok(Self {
                 inner: input.parse()?,
             })
         } else {
-            Err(input.error("expected starting with `$crate::`"))
+            Err(input.error("expected starting with `$crate`"))
         }
     }
 }

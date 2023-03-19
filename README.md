@@ -122,7 +122,7 @@ foo(32, one(), 2, 1);
 
 ## How to bypass the limitations
 
-1. You can pass a module path starting with `$crate::` for the `nade` attribute macro on the function, like this:
+1. You can pass a module path starting with `$crate` for the `nade` attribute macro on the function, like this:
 
     ```rust
     #[nade($crate::module)]

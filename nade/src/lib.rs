@@ -119,7 +119,7 @@
 //!
 //! ## How to bypass the limitations
 //!
-//! 1. You can pass a module path starting with `$crate::` for the `nade`
+//! 1. You can pass a module path starting with `$crate` for the `nade`
 //! attribute macro on the function, like this:
 //!
 //!     ```rust

@@ -55,7 +55,7 @@ fn main() {
     }
 
     {
-        // re-export items then using `$crate::` to specify the full path
+        // re-export items then using `$crate` to specify the full path
         use foo3::bar;
 
         assert_eq!(bar!(), std::env::current_dir().unwrap());

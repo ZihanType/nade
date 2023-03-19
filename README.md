@@ -106,23 +106,35 @@ foo(32, one(), 2, 1);
 
 ## Limitations
 
-1. When you call the macro `foo`, you must use the `use` statement to bring the macro into scope, like this:
+1. When you call the macro `foo`, you must use the `use` statement to bring the macro into scope.
 
     ```rust
+    // Good
     use some_crate::foo;
-
     foo!(32, d = 1, c = 2);
+
+    // Bad
+    some_crate::foo!(32, d = 1, c = 2);
     ```
 
     Because the attribute macro `nade` will generate a macro and a mod with the same name as the function, and the macro use the function and the mod, so you must use the `use` statement to bring the macro, the function and the mod into scope.
 
 2. The default argument expression must be declared in the scope of the macro call.
 
+    ```rust
+    // Good
+    use some_crate::one;
+    foo!(32, d = 1, c = 2);
+
+    // Bad
+    foo!(32, d = 1, c = 2);
+    ```
+
     Because default argument expression is expanded to the macro call site, so it must be declared in the scope of the macro call.
 
 ## How to bypass the limitations
 
-1. You can pass a module path starting with `$crate` for the `nade` attribute macro on the function, like this:
+1. You can pass a module path starting with `$crate` for the `nade` attribute macro on the function.
 
     ```rust
     #[nade($crate::module)]
@@ -172,7 +184,7 @@ foo(32, one(), 2, 1);
     some_crate::foo!(32, d = 1, c = 2);
     ```
 
-2. In the `nade` attribute macro on the parameter, you can specify the default argument expression using the full path, either `$crate::a::expr`, or `::a::b::expr`. In fact, when you use `#[nade]` on an parameter, you are using `#[nade(::core::default::Default::default())]`, like this:
+2. In the `nade` attribute macro on the parameter, you can specify the default argument expression using the full path, either `$crate::a::expr`, or `::a::b::expr`. In fact, when you use `#[nade]` on an parameter, you are using `#[nade(::core::default::Default::default())]`.
 
     ```rust
     pub fn one() -> u32 {

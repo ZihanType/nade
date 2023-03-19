@@ -130,7 +130,7 @@ foo(32, one(), 2, 1);
     foo!(32, d = 1, c = 2);
     ```
 
-    Because default argument expression is expanded to the macro call site, so it must be declared in the scope of the macro call.
+    Because the default argument expression is evaluated after the macro is expanded, so it must be declared in the scope of the macro call.
 
 ## How to bypass the limitations
 

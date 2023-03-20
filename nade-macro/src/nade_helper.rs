@@ -13,13 +13,13 @@ use crate::{
     parameter::Parameter,
 };
 
-pub(crate) struct Helper {
+pub(crate) struct NadeHelper {
     arguments: Punctuated<Argument, Token![,]>,
     parameters: Punctuated<Parameter, Token![,]>,
     fn_path: MaybeStartsWithDollar<Path>,
 }
 
-impl Parse for Helper {
+impl Parse for NadeHelper {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let arguments_paren;
         let parameters_paren;
@@ -31,7 +31,7 @@ impl Parse for Helper {
         if !input.is_empty() {
             return Err(syn::Error::new(
                 Span::call_site(),
-                "unexpected token in `helper!(..)` macro",
+                "unexpected token in `nade_helper!(..)` macro",
             ));
         }
 
@@ -39,7 +39,7 @@ impl Parse for Helper {
         let parameters = parameters_paren.parse_terminated(Parameter::parse)?;
         let fn_path = fn_path_paren.parse::<MaybeStartsWithDollar<Path>>()?;
 
-        Ok(Helper {
+        Ok(NadeHelper {
             arguments,
             parameters,
             fn_path,
@@ -47,12 +47,12 @@ impl Parse for Helper {
     }
 }
 
-pub(crate) fn generate(helper: Helper) -> syn::Result<TokenStream> {
-    let Helper {
+pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
+    let NadeHelper {
         arguments,
         parameters,
         fn_path,
-    } = helper;
+    } = nade_helper;
 
     if arguments.len() > parameters.len() {
         return Err(syn::Error::new(

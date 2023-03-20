@@ -1,9 +1,9 @@
 use proc_macro::{Delimiter, TokenTree};
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::{
     parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, File, FnArg, Ident, Item, ItemFn,
-    Lit, LitStr, Meta, MetaNameValue, Path, Visibility,
+    Lit, LitStr, Meta, MetaNameValue, Path,
 };
 
 use crate::{
@@ -16,14 +16,9 @@ pub(crate) fn generate(
     module_path: Option<StartsWithDollar<Path>>,
     fun: &mut ItemFn,
 ) -> syn::Result<TokenStream> {
-    let is_pub = matches!(fun.vis, Visibility::Public(_));
-
     let (parameters, parameter_docs) = get_parameters_and_docs(fun)?;
 
     let name = &fun.sig.ident;
-
-    let (pub_use, helper_path): (Option<TokenStream>, TokenStream) =
-        get_pub_use_and_helper_path(is_pub, &module_path, name);
 
     let fn_path = module_path.map(|path| quote!(#path::));
 
@@ -36,14 +31,12 @@ pub(crate) fn generate(
         #[allow(clippy::too_many_arguments)]
         #fun
 
-        #pub_use
-
-        #[::nade::macro_v(#vis)]
+        #[crate::macro_v(#vis)]
         #fn_docs
         #parameter_docs
         macro_rules! #name {
             ($($arguments:tt)*) => {
-                #helper_path::helper!(
+                $crate::nade_helper!(
                     ($($arguments)*)
                     (#(#parameters),*)
                     (#fn_path #name)
@@ -126,40 +119,6 @@ fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec
     }
 
     Ok((parameters, parameter_docs))
-}
-
-fn get_pub_use_and_helper_path(
-    is_pub: bool,
-    module_path: &Option<StartsWithDollar<Path>>,
-    name: &Ident,
-) -> (Option<TokenStream>, TokenStream) {
-    if !is_pub {
-        return (None, quote!(::nade));
-    }
-
-    match module_path {
-        Some(path) => {
-            let mod_name = format_ident!("__{}", name);
-            (
-                Some(quote! {
-                    #[doc(hidden)]
-                    pub mod #mod_name {
-                        pub use ::nade::helper;
-                    }
-                }),
-                quote!(#path::#mod_name),
-            )
-        }
-        None => (
-            Some(quote! {
-                #[doc(hidden)]
-                pub mod #name {
-                    pub use ::nade::helper;
-                }
-            }),
-            quote!(#name),
-        ),
-    }
 }
 
 fn get_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {

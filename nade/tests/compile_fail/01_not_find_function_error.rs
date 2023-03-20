@@ -1,3 +1,6 @@
+use nade::macro_v;
+pub use nade::nade_helper;
+
 mod foo {
     use nade::nade;
 

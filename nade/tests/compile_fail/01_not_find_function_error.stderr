@@ -1,10 +1,14 @@
-error[E0433]: failed to resolve: use of undeclared crate or module `bar`
-  --> $DIR/01_not_find_function_error.rs:5:12
+error[E0425]: cannot find function `bar` in this scope
+  --> tests/compile_fail/01_not_find_function_error.rs:7:12
    |
-5  |     pub fn bar() -> usize {
-   |            ^^^ use of undeclared crate or module `bar`
+7  |     pub fn bar() -> usize {
+   |            ^^^ not found in this scope
 ...
-11 |     assert_eq!(foo::bar!(), 1);
+13 |     assert_eq!(foo::bar!(), 1);
    |                ----------- in this macro invocation
    |
    = note: this error originates in the macro `foo::bar` (in Nightly builds, run with -Z macro-backtrace for more info)
+help: consider importing this function
+   |
+1  | use crate::foo::bar;
+   |

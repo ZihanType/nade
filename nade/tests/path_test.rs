@@ -1,4 +1,5 @@
-use nade::nade;
+pub use nade::nade_helper;
+use nade::{macro_v, nade};
 
 pub mod foo {
     use super::*;

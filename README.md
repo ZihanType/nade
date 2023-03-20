@@ -212,6 +212,36 @@ use nade::macro_v;
     }
     ```
 
+    it will be expanded to:
+
+    ```rust
+    pub fn foo<T1, T2, T3, T4>(a: T1, b: T2, c: T3, d: T4) {
+        let _ = (a, b, c, d);
+    }
+
+    #[crate::macro_v(pub)]
+    macro_rules! foo {
+        ($($args:tt)*) => {
+            $crate::nade_helper!(
+                ($($args)*)
+                (
+                    a = $crate::module::one(),
+                    b = ::std::path::Path::new("a"),
+                    c = $crate::module::PATH,
+                    d = "Hello"
+                )
+                (foo)
+            )
+        };
+    }
+    ```
+
+    Then, you can not use the `use` statement to bring default argument expressions into scope, like this:
+
+    ```rust
+    foo!();
+    ```
+
 ## Credits
 
 This crate is inspired by these crates:

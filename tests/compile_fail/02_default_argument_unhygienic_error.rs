@@ -1,5 +1,4 @@
-use nade::macro_v;
-pub use nade::nade_helper;
+pub use nade::core::*;
 
 mod foo {
     use std::path::{Path, PathBuf};

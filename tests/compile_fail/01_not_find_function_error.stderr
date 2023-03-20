@@ -1,10 +1,10 @@
 error[E0425]: cannot find function `bar` in this scope
-  --> tests/compile_fail/01_not_find_function_error.rs:8:12
+  --> tests/compile_fail/01_not_find_function_error.rs:7:12
    |
-8  |     pub fn bar() -> usize {
+7  |     pub fn bar() -> usize {
    |            ^^^ not found in this scope
 ...
-14 |     assert_eq!(foo::bar!(), 1);
+13 |     assert_eq!(foo::bar!(), 1);
    |                ----------- in this macro invocation
    |
    = note: this error originates in the macro `foo::bar` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -1,10 +1,10 @@
 error[E0433]: failed to resolve: use of undeclared type `Path`
-  --> tests/compile_fail/02_default_argument_unhygienic_error.rs:10:39
+  --> tests/compile_fail/02_default_argument_unhygienic_error.rs:9:39
    |
-10 |     pub fn bar<P: AsRef<Path>>(#[nade(Path::new(".").canonicalize().unwrap())] p: P) -> PathBuf {
+9  |     pub fn bar<P: AsRef<Path>>(#[nade(Path::new(".").canonicalize().unwrap())] p: P) -> PathBuf {
    |                                       ^^^^ use of undeclared type `Path`
 ...
-20 |     assert_eq!(bar!(), env::current_dir().unwrap());
+19 |     assert_eq!(bar!(), env::current_dir().unwrap());
    |                ------ in this macro invocation
    |
    = note: this error originates in the macro `bar` (in Nightly builds, run with -Z macro-backtrace for more info)

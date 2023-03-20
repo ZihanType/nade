@@ -1,13 +1,12 @@
-pub use nade::nade_helper;
+pub use nade::core::*;
 
 pub mod foo {
-    use nade::macro_v;
 
     pub fn bar(a: u32, b: u32, c: u32) -> u32 {
         a + b + c
     }
 
-    #[macro_v(pub)]
+    #[crate::macro_v(pub)]
     macro_rules! baz {
         ($($arg:tt)*) => {
             $crate::nade_helper!(

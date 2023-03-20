@@ -1,4 +1,4 @@
-#![doc = include_str!("../../README.md")]
+#![doc = include_str!("../README.md")]
 
 #[doc(hidden)]
 pub use macro_v::macro_v;

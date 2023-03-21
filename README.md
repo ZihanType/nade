@@ -80,7 +80,7 @@ macro_rules! foo {
     ($($args:tt)*) => {
         $crate::nade_helper!(
             ($($args)*)
-            (a = 42, b = one(), c = Default::default())
+            (a = 42, b = one(), c = Default::default(), d)
             (foo)
         )
     };
@@ -174,7 +174,7 @@ pub use nade::core::{macro_v, nade_helper};
         ($($args:tt)*) => {
             $crate::nade_helper!(
                 ($($args)*)
-                (a = 42, b = one(), c = Default::default())
+                (a = 42, b = one(), c = Default::default(), d)
                 ($crate::module::foo)
             )
         };

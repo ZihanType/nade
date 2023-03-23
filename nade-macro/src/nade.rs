@@ -1,9 +1,8 @@
-use proc_macro::{Delimiter, TokenTree};
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::{
-    parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, File, FnArg, Ident, Item, ItemFn,
-    Lit, LitStr, Meta, MetaNameValue, Path,
+    parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, ExprLit, File, FnArg, Ident, Item,
+    ItemFn, Lit, LitStr, Meta, MetaNameValue, Path,
 };
 
 use crate::{
@@ -59,7 +58,7 @@ fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec
             }
             FnArg::Typed(pat_type) => {
                 let mut nade_attrs =
-                    drain_filter(&mut pat_type.attrs, |attr| attr.path.is_ident("nade"));
+                    drain_filter(&mut pat_type.attrs, |attr| attr.path().is_ident("nade"));
 
                 if nade_attrs.len() > 1 {
                     return Err(syn::Error::new(
@@ -68,7 +67,8 @@ fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec
                     ));
                 }
 
-                let doc_attrs = drain_filter(&mut pat_type.attrs, |attr| attr.path.is_ident("doc"));
+                let doc_attrs =
+                    drain_filter(&mut pat_type.attrs, |attr| attr.path().is_ident("doc"));
 
                 let pat = *pat_type.pat.clone();
                 let doc_pat = pat.clone();
@@ -97,9 +97,13 @@ fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec
                             return None;
                         }
 
-                        if let Ok(Meta::NameValue(MetaNameValue {
-                            lit: Lit::Str(s), ..
-                        })) = attr.parse_meta()
+                        if let Meta::NameValue(MetaNameValue {
+                            value:
+                                Expr::Lit(ExprLit {
+                                    lit: Lit::Str(s), ..
+                                }),
+                            ..
+                        }) = attr.meta
                         {
                             return Some(s);
                         }
@@ -126,13 +130,10 @@ fn get_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
 
     let fn_docs = attrs
         .iter()
-        .filter(|attr| matches!(attr.style, AttrStyle::Outer) && attr.path.is_ident("doc"))
+        .filter(|attr| matches!(attr.style, AttrStyle::Outer) && attr.path().is_ident("doc"))
         .inspect(|attr| {
             if !has_doc_comment {
-                if let Ok(Meta::NameValue(MetaNameValue {
-                    lit: Lit::Str(_), ..
-                })) = attr.parse_meta()
-                {
+                if let Meta::NameValue(_) = attr.meta {
                     has_doc_comment = true;
                 }
             }
@@ -236,26 +237,15 @@ fn parameter_to_doc(parameter_doc: ParameterDoc) -> TokenStream {
 }
 
 fn get_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDollar<Expr>> {
-    let Attribute { tokens, .. } = attr;
-    let span = tokens.span();
+    if let Meta::Path(_) = attr.meta {
+        return Ok(MaybeStartsWithDollar::Normal(Normal {
+            inner: syn::parse2(quote!(::core::default::Default::default()))?,
+        }));
+    }
 
-    let stream: proc_macro::TokenStream = tokens.into();
-    let mut iter = stream.into_iter();
-    let content = match iter.next() {
-        Some(TokenTree::Group(group)) if group.delimiter() == Delimiter::Parenthesis => {
-            group.stream()
-        }
-        Some(_) => {
-            return Err(syn::Error::new(span, "expected parenthesis"));
-        }
-        None => {
-            return Ok(MaybeStartsWithDollar::Normal(Normal {
-                inner: syn::parse2(quote!(::core::default::Default::default()))?,
-            }));
-        }
-    };
+    let tokens: proc_macro::TokenStream = attr.meta.require_list()?.tokens.to_token_stream().into();
 
-    MaybeStartsWithDollar::try_from(content)
+    MaybeStartsWithDollar::try_from(tokens)
 }
 
 fn check_unexpected_expr_type(expr: &Expr) -> syn::Result<()> {
@@ -270,14 +260,12 @@ fn check_unexpected_expr_type(expr: &Expr) -> syn::Result<()> {
 
     match &expr {
         Expr::Assign(_) => err!("assignment"),
-        Expr::AssignOp(_) => err!("compound assignment"),
         Expr::Await(_) => err!("`fut.await`"),
         Expr::Break(_) => err!("`break`"),
         Expr::Continue(_) => err!("`continue`"),
         Expr::Let(_) => err!("`let` guard"),
         Expr::Return(_) => err!("`return`"),
         Expr::Try(_) => err!("`expr?`"),
-        Expr::Type(_) => err!("`foo: f64`"),
         Expr::Yield(_) => err!("`yield expr`"),
         _ => Ok(()),
     }

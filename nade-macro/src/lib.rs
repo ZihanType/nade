@@ -18,20 +18,17 @@ pub fn nade(attr: TokenStream, item: TokenStream) -> TokenStream {
     let module_path = if attr.is_empty() {
         None
     } else {
-        let get_starts_with_dollar_path = || -> Result<_, _> {
-            MaybeStartsWithDollar::<Path>::try_from(attr)?.starts_with_dollar()
-        };
-        match get_starts_with_dollar_path() {
-            Ok(p) => Some(p),
-            Err(e) => {
-                let mut stream = e.to_compile_error();
-                stream.extend(fun.to_token_stream());
-                return stream.into();
-            }
-        }
+        Some(
+            MaybeStartsWithDollar::<Path>::try_from(attr)
+                .map(|maybe| maybe.starts_with_dollar())
+                .and_then(|i| i),
+        )
     };
 
-    nade::generate(module_path, &mut fun)
+    module_path
+        .transpose()
+        .map(|module_path| nade::generate(module_path, &mut fun))
+        .and_then(|i| i)
         .unwrap_or_else(|e| {
             let mut stream = e.to_compile_error();
             stream.extend(fun.to_token_stream());

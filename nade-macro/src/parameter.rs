@@ -25,8 +25,8 @@ impl ToTokens for Parameter {
 impl Parse for Parameter {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let test = input.fork();
-        let parameter = if test.parse::<Pat>().is_ok() && test.peek(Token![=]) {
-            let pattern = input.parse::<Pat>()?;
+        let parameter = if test.call(Pat::parse_single).is_ok() && test.peek(Token![=]) {
+            let pattern = input.call(Pat::parse_single)?;
             input.parse::<Token![=]>()?;
             let default = input.parse::<MaybeStartsWithDollar<Expr>>()?;
             Parameter {
@@ -34,7 +34,7 @@ impl Parse for Parameter {
                 default: Some(default),
             }
         } else {
-            let pattern = input.parse::<Pat>()?;
+            let pattern = input.call(Pat::parse_single)?;
             Parameter {
                 pattern,
                 default: None,

@@ -13,10 +13,10 @@ include = ["src/**/*", "Cargo.toml"]
 [workspace.dependencies]
 nade-macro = { version = "0.2.1", path = "./nade-macro" }
 
-prettyplease = { version = "0.1.25", default-features = false }
+prettyplease = { version = "0.2", default-features = false }
 proc-macro2 = { version = "1", default-features = false }
 quote = { version = "1", default-features = false }
-syn = { version = "1", default-features = false }
+syn = { version = "2", default-features = false }
 trybuild = { version = "1", default-features = false }
 macro-v = { version = "0.1.3", default-features = false }
 

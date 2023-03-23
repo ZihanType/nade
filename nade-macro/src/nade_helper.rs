@@ -35,8 +35,8 @@ impl Parse for NadeHelper {
             ));
         }
 
-        let arguments = arguments_paren.parse_terminated(Argument::parse)?;
-        let parameters = parameters_paren.parse_terminated(Parameter::parse)?;
+        let arguments = arguments_paren.parse_terminated(Argument::parse, Token![,])?;
+        let parameters = parameters_paren.parse_terminated(Parameter::parse, Token![,])?;
         let fn_path = fn_path_paren.parse::<MaybeStartsWithDollar<Path>>()?;
 
         Ok(NadeHelper {

@@ -10,5 +10,5 @@ error[E0425]: cannot find function `bar` in this scope
    = note: this error originates in the macro `foo::bar` (in Nightly builds, run with -Z macro-backtrace for more info)
 help: consider importing this function
    |
-1  | use crate::foo::bar;
+1  + use crate::foo::bar;
    |

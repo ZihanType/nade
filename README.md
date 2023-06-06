@@ -250,5 +250,5 @@ This crate is inspired by these crates:
 
 - [default-args](https://github.com/buttercrab/default-args.rs)
 - [duang](https://github.com/xiaoniu-578fa6bff964d005/duang)
-- [leptos](https://github.com/gbj/leptos)
+- [leptos](https://github.com/leptos-rs/leptos)
 - [typed-builder](https://github.com/idanarye/rust-typed-builder)

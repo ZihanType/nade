@@ -11,7 +11,7 @@ repository = "https://github.com/ZihanType/nade"
 include = ["src/**/*", "Cargo.toml"]
 
 [workspace.dependencies]
-nade-macro = { version = "0.2.2", path = "./nade-macro" }
+nade-macro = { version = "0.2.2", path = "./nade-macro", default-features = false }
 
 prettyplease = { version = "0.2", default-features = false }
 proc-macro2 = { version = "1", default-features = false }

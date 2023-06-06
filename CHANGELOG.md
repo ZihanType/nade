@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2] Unreleased
+
+- chore: modify `Option<TokenStream>` to `TokenStream`.
+- chore: fix stderr files.
+- chore: fix `Leptos` link in README.md.
+- chore: add `default-features = false` in Cargo.toml.
+
 ## [0.2.1] 2023-03-20
 
 - Internal change: move internal macros to `core` mod.

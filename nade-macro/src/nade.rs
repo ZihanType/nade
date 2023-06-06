@@ -141,9 +141,11 @@ fn get_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
         .collect::<Vec<_>>();
 
     let blank_line = if has_doc_comment {
-        Some(quote!(#[doc = ""]))
+        quote! {
+            #[doc = ""]
+        }
     } else {
-        None
+        quote! {}
     };
 
     let link_to_fn = LitStr::new(
@@ -158,16 +160,16 @@ fn get_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
     }
 }
 
-fn get_parameter_docs(docs: Vec<ParameterDoc>) -> Option<TokenStream> {
+fn get_parameter_docs(docs: Vec<ParameterDoc>) -> TokenStream {
     if docs.is_empty() {
-        return None;
+        return quote! {};
     }
 
     let docs = docs.into_iter().map(parameter_to_doc);
-    Some(quote! {
+    quote! {
         #[doc = "# Parameters"]
         #(#docs)*
-    })
+    }
 }
 
 fn parameter_to_doc(parameter_doc: ParameterDoc) -> TokenStream {

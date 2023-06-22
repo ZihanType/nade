@@ -3,11 +3,11 @@
 pub use nade_macro::nade;
 
 #[doc(hidden)]
-pub use crate::core::*;
-
-pub mod core {
-    #[doc(hidden)]
-    pub use macro_v::macro_v;
-    #[doc(hidden)]
+pub mod base {
     pub use nade_macro::nade_helper;
+}
+
+#[doc(hidden)]
+pub mod __internal {
+    pub use macro_v::macro_v;
 }

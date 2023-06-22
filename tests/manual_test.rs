@@ -1,4 +1,4 @@
-pub use nade::core::*;
+pub use nade::base::*;
 
 pub mod foo {
 
@@ -6,7 +6,7 @@ pub mod foo {
         a + b + c
     }
 
-    #[crate::macro_v(pub)]
+    #[::nade::__internal::macro_v(pub)]
     macro_rules! baz {
         ($($arg:tt)*) => {
             $crate::nade_helper!(

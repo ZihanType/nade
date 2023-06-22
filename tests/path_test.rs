@@ -1,4 +1,4 @@
-pub use nade::core::*;
+pub use nade::base::*;
 
 pub mod foo {
     use nade::nade;

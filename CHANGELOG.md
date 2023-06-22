@@ -1,11 +1,13 @@
 # Changelog
 
-## [0.2.2] Unreleased
+## [0.3.0] Unreleased
 
 - chore: modify `Option<TokenStream>` to `TokenStream`.
 - chore: fix stderr files.
 - chore: fix `Leptos` link in README.md.
 - chore: add `default-features = false` in Cargo.toml.
+- rename: `core` mod to `base`.
+- fix: `#[nade(...)]` now expand to `::nade::__internal::macro_v(...)` instead of `crate::macro_v(...)`.
 
 ## [0.2.1] 2023-03-20
 

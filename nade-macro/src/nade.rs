@@ -30,7 +30,7 @@ pub(crate) fn generate(
         #[allow(clippy::too_many_arguments)]
         #fun
 
-        #[crate::macro_v(#vis)]
+        #[::nade::__internal::macro_v(#vis)]
         #fn_docs
         #parameter_docs
         macro_rules! #name {

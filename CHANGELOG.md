@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.0] Unreleased
+## [0.3.0] 2023-06-22
 
 - chore: modify `Option<TokenStream>` to `TokenStream`.
 - chore: fix stderr files.

@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.1] 2023-07-29
+
+- doc: Update README.MD.
+- chore: Remove unnecessary internal struct.
+- fix: Improved error message when a parameter is specified multiple times by named.
+- fix: Improved error message when `#[nade(..)]` is used multiple times on a single parameter.
+- chore: Rename internal function name.
+- chore: Simplified implementation of `Parse` trait for `Parameter` struct.
+
 ## [0.3.0] 2023-06-22
 
 - chore: modify `Option<TokenStream>` to `TokenStream`.

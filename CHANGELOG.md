@@ -8,6 +8,7 @@
 - fix: Improved error message when `#[nade(..)]` is used multiple times on a single parameter.
 - chore: Rename internal function name.
 - chore: Simplified implementation of `Parse` trait for `Parameter` struct.
+- fix: Recover some of syn's features.
 
 ## [0.3.0] 2023-06-22
 

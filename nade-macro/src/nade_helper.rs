@@ -4,13 +4,12 @@ use syn::{
     parenthesized,
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
+    spanned::Spanned,
     Path, Token,
 };
 
 use crate::{
-    argument::Argument,
-    maybe_starts_with_dollar::{MaybeStartsWithDollar, Normal},
-    parameter::Parameter,
+    argument::Argument, maybe_starts_with_dollar::MaybeStartsWithDollar, parameter::Parameter,
 };
 
 pub(crate) struct NadeHelper {
@@ -73,10 +72,10 @@ pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
                     if *pattern == para.pattern {
                         if named.is_some() {
                             return Err(syn::Error::new(
-                                Span::call_site(),
+                                pattern.span(),
                                 format_args!(
                                     "The same parameter `{}` is specified multiple times by named",
-                                    para.pattern.to_token_stream()
+                                    pattern.to_token_stream()
                                 ),
                             ));
                         }
@@ -115,10 +114,10 @@ pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
         }
 
         let fn_arg = named
-            .map(|n| MaybeStartsWithDollar::Normal(Normal { inner: n.clone() }))
+            .map(|n| MaybeStartsWithDollar::Normal(n.clone()))
             .unwrap_or_else(|| {
                 positioned
-                    .map(|p| MaybeStartsWithDollar::Normal(Normal { inner: p.clone() }))
+                    .map(|p| MaybeStartsWithDollar::Normal(p.clone()))
                     .unwrap_or_else(|| para.default.unwrap())
             });
         fn_args.push(fn_arg);

@@ -9,7 +9,7 @@ use syn::{
 #[derive(Clone)]
 pub(crate) enum MaybeStartsWithDollar<T> {
     StartsWithDollar(StartsWithDollar<T>),
-    Normal(Normal<T>),
+    Normal(T),
 }
 
 impl<T: Parse> Parse for MaybeStartsWithDollar<T> {
@@ -23,7 +23,7 @@ impl<T: Parse> Parse for MaybeStartsWithDollar<T> {
             }
         }
 
-        Ok(Self::Normal(Normal::parse(input)?))
+        Ok(Self::Normal(input.parse()?))
     }
 }
 
@@ -49,7 +49,7 @@ impl<T: Parse> TryFrom<proc_macro::TokenStream> for MaybeStartsWithDollar<T> {
             }
         }
 
-        let n = syn::parse::<Normal<T>>(iter.collect())?;
+        let n = syn::parse::<T>(iter.collect())?;
         Ok(MaybeStartsWithDollar::Normal(n))
     }
 }
@@ -58,19 +58,18 @@ impl<T> MaybeStartsWithDollar<T> {
     pub(crate) fn inner(&self) -> &T {
         match self {
             MaybeStartsWithDollar::StartsWithDollar(s) => &s.inner,
-            MaybeStartsWithDollar::Normal(n) => &n.inner,
+            MaybeStartsWithDollar::Normal(n) => n,
         }
     }
 }
 
 impl<T: ToTokens> MaybeStartsWithDollar<T> {
-    pub(crate) fn starts_with_dollar(self) -> syn::Result<StartsWithDollar<T>> {
+    pub(crate) fn require_starts_with_dollar(self) -> syn::Result<StartsWithDollar<T>> {
         match self {
             MaybeStartsWithDollar::StartsWithDollar(s) => Ok(s),
-            MaybeStartsWithDollar::Normal(n) => Err(syn::Error::new(
-                n.inner.span(),
-                "expected starting with `$crate`",
-            )),
+            MaybeStartsWithDollar::Normal(n) => {
+                Err(syn::Error::new(n.span(), "expected starting with `$crate`"))
+            }
         }
     }
 }
@@ -95,25 +94,6 @@ impl<T: Parse> Parse for StartsWithDollar<T> {
 impl<T: ToTokens> ToTokens for StartsWithDollar<T> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         <Token![$]>::default().to_tokens(tokens);
-        self.inner.to_tokens(tokens);
-    }
-}
-
-#[derive(Clone)]
-pub(crate) struct Normal<T> {
-    pub(crate) inner: T,
-}
-
-impl<T: Parse> Parse for Normal<T> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            inner: input.parse()?,
-        })
-    }
-}
-
-impl<T: ToTokens> ToTokens for Normal<T> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
         self.inner.to_tokens(tokens);
     }
 }

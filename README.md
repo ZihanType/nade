@@ -169,13 +169,13 @@ pub use nade::base::nade_helper;
         a + b + c + d
     }
 
-    #[crate::macro_v(pub)]
+    #[::nade::__internal::macro_v(pub)]
     macro_rules! foo {
         ($($args:tt)*) => {
             $crate::nade_helper!(
                 ($($args)*)
                 (a = 42, b = one(), c = Default::default(), d)
-                ($crate::module::foo)
+                ($crate::module::foo) // <--- here
             )
         };
     }
@@ -221,7 +221,7 @@ pub use nade::base::nade_helper;
         let _ = (a, b, c, d);
     }
 
-    #[crate::macro_v(pub)]
+    #[::nade::__internal::macro_v(pub)]
     macro_rules! foo {
         ($($args:tt)*) => {
             $crate::nade_helper!(

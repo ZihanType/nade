@@ -20,7 +20,7 @@ pub fn nade(attr: TokenStream, item: TokenStream) -> TokenStream {
     } else {
         Some(
             MaybeStartsWithDollar::<Path>::try_from(attr)
-                .map(|maybe| maybe.starts_with_dollar())
+                .map(|maybe| maybe.require_starts_with_dollar())
                 .and_then(|i| i),
         )
     };

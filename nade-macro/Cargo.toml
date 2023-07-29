@@ -19,11 +19,4 @@ proc-macro = true
 prettyplease = { workspace = true }
 proc-macro2 = { workspace = true }
 quote = { workspace = true }
-syn = { workspace = true, features = [
-    "clone-impls",
-    "extra-traits",
-    "parsing",
-    "proc-macro",
-    "printing",
-    "full",
-] }
+syn = { workspace = true, features = ["clone-impls", "extra-traits"] }

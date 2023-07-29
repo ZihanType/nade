@@ -6,7 +6,7 @@ use syn::{
 };
 
 use crate::{
-    maybe_starts_with_dollar::{MaybeStartsWithDollar, Normal, StartsWithDollar},
+    maybe_starts_with_dollar::{MaybeStartsWithDollar, StartsWithDollar},
     parameter::Parameter,
     parameter_doc::ParameterDoc,
 };
@@ -15,7 +15,7 @@ pub(crate) fn generate(
     module_path: Option<StartsWithDollar<Path>>,
     fun: &mut ItemFn,
 ) -> syn::Result<TokenStream> {
-    let (parameters, parameter_docs) = get_parameters_and_docs(fun)?;
+    let (parameters, parameter_docs) = extract_parameters_and_docs(fun)?;
 
     let name = &fun.sig.ident;
 
@@ -23,8 +23,8 @@ pub(crate) fn generate(
 
     let vis = &fun.vis;
 
-    let fn_docs = get_fn_docs(&fun.attrs, name);
-    let parameter_docs = get_parameter_docs(parameter_docs);
+    let fn_docs = generate_fn_docs(&fun.attrs, name);
+    let parameter_docs = generate_parameter_docs(parameter_docs);
 
     let expand = quote! {
         #[allow(clippy::too_many_arguments)]
@@ -47,7 +47,9 @@ pub(crate) fn generate(
     Ok(expand)
 }
 
-fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec<ParameterDoc>)> {
+fn extract_parameters_and_docs(
+    fun: &mut ItemFn,
+) -> syn::Result<(Vec<Parameter>, Vec<ParameterDoc>)> {
     let mut parameters = Vec::new();
     let mut parameter_docs = Vec::new();
 
@@ -62,7 +64,7 @@ fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec
 
                 if nade_attrs.len() > 1 {
                     return Err(syn::Error::new(
-                        pat_type.span(),
+                        nade_attrs[1].span(),
                         "`#[nade(..)]` can only be used once per parameter",
                     ));
                 }
@@ -75,7 +77,7 @@ fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec
 
                 let default = match nade_attrs.pop() {
                     Some(nade_attr) => {
-                        let expr = get_parameter_default(nade_attr)?;
+                        let expr = extract_parameter_default(nade_attr)?;
                         check_unexpected_expr_type(expr.inner())?;
                         Some(expr)
                     }
@@ -125,17 +127,15 @@ fn get_parameters_and_docs(fun: &mut ItemFn) -> syn::Result<(Vec<Parameter>, Vec
     Ok((parameters, parameter_docs))
 }
 
-fn get_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
+fn generate_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
     let mut has_doc_comment = false;
 
     let fn_docs = attrs
         .iter()
         .filter(|attr| matches!(attr.style, AttrStyle::Outer) && attr.path().is_ident("doc"))
         .inspect(|attr| {
-            if !has_doc_comment {
-                if let Meta::NameValue(_) = attr.meta {
-                    has_doc_comment = true;
-                }
+            if !has_doc_comment && matches!(attr.meta, Meta::NameValue(_)) {
+                has_doc_comment = true;
             }
         })
         .collect::<Vec<_>>();
@@ -160,19 +160,19 @@ fn get_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
     }
 }
 
-fn get_parameter_docs(docs: Vec<ParameterDoc>) -> TokenStream {
+fn generate_parameter_docs(docs: Vec<ParameterDoc>) -> TokenStream {
     if docs.is_empty() {
         return quote! {};
     }
 
-    let docs = docs.into_iter().map(parameter_to_doc);
+    let docs = docs.into_iter().map(generate_one_parameter_doc);
     quote! {
         #[doc = "# Parameters"]
         #(#docs)*
     }
 }
 
-fn parameter_to_doc(parameter_doc: ParameterDoc) -> TokenStream {
+fn generate_one_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
     let ParameterDoc {
         pattern,
         ty,
@@ -193,7 +193,7 @@ fn parameter_to_doc(parameter_doc: ParameterDoc) -> TokenStream {
     let pretty_ty = prettyplease::unparse(&file);
     let pretty_ty = &pretty_ty[16..&pretty_ty.len() - 2];
 
-    let type_doc = if let Some(default) = default {
+    let parameter_define = if let Some(default) = default {
         let expr_item: Item = parse_quote! {
             fn a() {
                 let _ = #default;
@@ -219,9 +219,9 @@ fn parameter_to_doc(parameter_doc: ParameterDoc) -> TokenStream {
         format!("- **{}**: [`{}`]", quote!(#pattern), pretty_ty)
     };
 
-    let type_doc = LitStr::new(&type_doc, pattern.span());
+    let parameter_define = LitStr::new(&parameter_define, pattern.span());
 
-    let para_docs = docs.into_iter().enumerate().map(|(idx, doc)| {
+    let parameter_docs = docs.into_iter().enumerate().map(|(idx, doc)| {
         let doc_str = doc.value();
         let doc_str = if idx == 0 {
             format!("    - {doc_str}")
@@ -233,16 +233,17 @@ fn parameter_to_doc(parameter_doc: ParameterDoc) -> TokenStream {
     });
 
     quote! {
-        #[doc = #type_doc]
-        #(#[doc = #para_docs])*
+        #[doc = #parameter_define]
+        #(#[doc = #parameter_docs])*
     }
 }
 
-fn get_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDollar<Expr>> {
+fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDollar<Expr>> {
     if let Meta::Path(_) = attr.meta {
-        return Ok(MaybeStartsWithDollar::Normal(Normal {
-            inner: syn::parse2(quote!(::core::default::Default::default()))?,
-        }));
+        attr.meta.require_path_only()?;
+        return Ok(MaybeStartsWithDollar::Normal(syn::parse2(quote!(
+            ::core::default::Default::default()
+        ))?));
     }
 
     let tokens: proc_macro::TokenStream = attr.meta.require_list()?.tokens.to_token_stream().into();

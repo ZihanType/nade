@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.2] 2023-08-05
+
+- feat: Relaxing constraints on default value expression types.
+
 ## [0.3.1] 2023-07-29
 
 - doc: Update README.MD.

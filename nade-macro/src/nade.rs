@@ -252,25 +252,16 @@ fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDoll
 }
 
 fn check_unexpected_expr_type(expr: &Expr) -> syn::Result<()> {
-    macro_rules! err {
-        ($v:tt) => {
-            Err(syn::Error::new(
-                expr.span(),
-                concat!($v, " is not supported in `#[nade(..)]`"),
-            ))
-        };
-    }
-
-    match &expr {
-        Expr::Assign(_) => err!("assignment"),
-        Expr::Await(_) => err!("`fut.await`"),
-        Expr::Break(_) => err!("`break`"),
-        Expr::Continue(_) => err!("`continue`"),
-        Expr::Let(_) => err!("`let` guard"),
-        Expr::Return(_) => err!("`return`"),
-        Expr::Try(_) => err!("`expr?`"),
-        Expr::Yield(_) => err!("`yield expr`"),
-        _ => Ok(()),
+    if let Expr::Assign(_) = expr {
+        Err(syn::Error::new(
+            expr.span(),
+            "assignment expression is not supported \
+                because it is not possible to distinguish \
+                whether it is a named general expression \
+                or a non-named assignment expression.",
+        ))
+    } else {
+        Ok(())
     }
 }
 

@@ -63,10 +63,19 @@ fn extract_parameters_and_docs(
                     drain_filter(&mut pat_type.attrs, |attr| attr.path().is_ident("nade"));
 
                 if nade_attrs.len() > 1 {
-                    return Err(syn::Error::new(
-                        nade_attrs[1].span(),
-                        "`#[nade(..)]` can only be used once per parameter",
-                    ));
+                    const MSG: &str = "`#[nade(..)]` can only be used once per parameter";
+
+                    if let Some(e) = nade_attrs
+                        .iter()
+                        .skip(1)
+                        .map(|attr| syn::Error::new(attr.span(), MSG))
+                        .reduce(|mut a, b| {
+                            a.combine(b);
+                            a
+                        })
+                    {
+                        return Err(e);
+                    }
                 }
 
                 let doc_attrs =
@@ -241,9 +250,9 @@ fn generate_one_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
 fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDollar<Expr>> {
     if let Meta::Path(_) = attr.meta {
         attr.meta.require_path_only()?;
-        return Ok(MaybeStartsWithDollar::Normal(syn::parse2(quote!(
+        return Ok(MaybeStartsWithDollar::Normal(parse_quote!(
             ::core::default::Default::default()
-        ))?));
+        )));
     }
 
     let tokens: proc_macro::TokenStream = attr.meta.require_list()?.tokens.to_token_stream().into();

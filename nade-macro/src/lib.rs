@@ -5,7 +5,7 @@ mod nade_helper;
 mod parameter;
 mod parameter_doc;
 
-use maybe_starts_with_dollar::MaybeStartsWithDollar;
+use maybe_starts_with_dollar::StartsWithDollar;
 use nade_helper::NadeHelper;
 use proc_macro::TokenStream;
 use quote::ToTokens;
@@ -18,17 +18,10 @@ pub fn nade(attr: TokenStream, item: TokenStream) -> TokenStream {
     let module_path = if attr.is_empty() {
         None
     } else {
-        Some(
-            MaybeStartsWithDollar::<Path>::try_from(attr)
-                .map(|maybe| maybe.require_starts_with_dollar())
-                .and_then(|i| i),
-        )
+        Some(parse_macro_input!(attr as StartsWithDollar::<Path>))
     };
 
-    module_path
-        .transpose()
-        .map(|module_path| nade::generate(module_path, &mut fun))
-        .and_then(|i| i)
+    nade::generate(module_path, &mut fun)
         .unwrap_or_else(|e| {
             let mut stream = e.to_compile_error();
             stream.extend(fun.to_token_stream());

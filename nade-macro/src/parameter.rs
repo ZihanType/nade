@@ -26,9 +26,10 @@ impl Parse for Parameter {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let pattern = input.call(Pat::parse_single)?;
 
-        let default = match input.parse::<Option<Token![=]>>()? {
-            Some(_) => Some(input.parse::<MaybeStartsWithDollar<Expr>>()?),
-            None => None,
+        let default = if input.parse::<Option<Token![=]>>()?.is_some() {
+            Some(input.parse::<MaybeStartsWithDollar<Expr>>()?)
+        } else {
+            None
         };
 
         Ok(Parameter { pattern, default })

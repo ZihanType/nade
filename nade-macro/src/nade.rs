@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{
     parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, ExprLit, File, FnArg, Ident, Item,
-    ItemFn, Lit, LitStr, Meta, MetaNameValue, Path,
+    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, Path,
 };
 
 use crate::{
@@ -248,16 +248,18 @@ fn generate_one_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
 }
 
 fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDollar<Expr>> {
-    if let Meta::Path(_) = attr.meta {
-        attr.meta.require_path_only()?;
-        return Ok(MaybeStartsWithDollar::Normal(parse_quote!(
+    let meta = attr.meta;
+
+    match meta {
+        Meta::Path(_) => Ok(MaybeStartsWithDollar::Normal(parse_quote!(
             ::core::default::Default::default()
-        )));
+        ))),
+        Meta::List(MetaList { tokens, .. }) => syn::parse2(tokens),
+        Meta::NameValue(a) => Err(syn::Error::new(
+            a.span(),
+            "The `#[nade]` attribute does not support `#[nade = ..]`",
+        )),
     }
-
-    let tokens: proc_macro::TokenStream = attr.meta.require_list()?.tokens.to_token_stream().into();
-
-    MaybeStartsWithDollar::try_from(tokens)
 }
 
 fn check_unexpected_expr_type(expr: &Expr) -> syn::Result<()> {

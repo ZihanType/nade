@@ -1,3 +1,4 @@
+use quote::ToTokens;
 use syn::{
     parse::{Parse, ParseStream},
     Expr, Pat, Token,
@@ -22,5 +23,18 @@ impl Parse for Argument {
         };
 
         Ok(argument)
+    }
+}
+
+impl ToTokens for Argument {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        match self {
+            Argument::Positioned { value } => value.to_tokens(tokens),
+            Argument::Named { pattern, value } => {
+                pattern.to_tokens(tokens);
+                <Token![=]>::default().to_tokens(tokens);
+                value.to_tokens(tokens);
+            }
+        }
     }
 }

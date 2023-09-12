@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
     parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, ExprLit, File, FnArg, Ident, Item,
-    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, Path,
+    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, PatType, Path, PathSegment,
 };
 
 use crate::{
@@ -19,23 +19,30 @@ pub(crate) fn generate(
 
     let name = &fun.sig.ident;
 
-    let fn_path = module_path.map(|path| quote!(#path::));
+    let fn_path = module_path
+        .as_ref()
+        .map(|path| simple_path_to_string(&path.inner));
+
+    let fn_docs = generate_fn_docs(&fun.attrs, name, fn_path);
 
     let vis = &fun.vis;
 
-    let fn_docs = generate_fn_docs(&fun.attrs, name);
     let parameter_docs = generate_parameter_docs(parameter_docs);
+
+    let macro_v_path = quote!(::nade::__internal);
+    let nade_helper_path = quote!($crate);
+    let fn_path = module_path.map(|path| quote!(#path::));
 
     let expand = quote! {
         #[allow(clippy::too_many_arguments)]
         #fun
 
-        #[::nade::__internal::macro_v(#vis)]
+        #[#macro_v_path::macro_v(#vis)]
         #fn_docs
         #parameter_docs
         macro_rules! #name {
             ($($arguments:tt)*) => {
-                $crate::nade_helper!(
+                #nade_helper_path::nade_helper!(
                     ($($arguments)*)
                     (#(#parameters),*)
                     (#fn_path #name)
@@ -58,9 +65,8 @@ fn extract_parameters_and_docs(
             FnArg::Receiver(r) => {
                 return Err(syn::Error::new(r.span(), "`self` is not support"));
             }
-            FnArg::Typed(pat_type) => {
-                let mut nade_attrs =
-                    drain_filter(&mut pat_type.attrs, |attr| attr.path().is_ident("nade"));
+            FnArg::Typed(PatType { attrs, pat, ty, .. }) => {
+                let mut nade_attrs = drain_filter(attrs, |attr| attr.path().is_ident("nade"));
 
                 if nade_attrs.len() > 1 {
                     const MSG: &str = "`#[nade(..)]` can only be used once per parameter";
@@ -78,11 +84,7 @@ fn extract_parameters_and_docs(
                     }
                 }
 
-                let doc_attrs =
-                    drain_filter(&mut pat_type.attrs, |attr| attr.path().is_ident("doc"));
-
-                let pat = *pat_type.pat.clone();
-                let doc_pat = pat.clone();
+                let doc_attrs = drain_filter(attrs, |attr| attr.path().is_ident("doc"));
 
                 let default = match nade_attrs.pop() {
                     Some(nade_attr) => {
@@ -92,14 +94,6 @@ fn extract_parameters_and_docs(
                     }
                     None => None,
                 };
-                let doc_default = default.as_ref().map(|d| d.inner().clone());
-
-                parameters.push(Parameter {
-                    pattern: pat,
-                    default,
-                });
-
-                let ty = *pat_type.ty.clone();
 
                 let docs = doc_attrs
                     .into_iter()
@@ -124,10 +118,15 @@ fn extract_parameters_and_docs(
                     .collect::<Vec<_>>();
 
                 parameter_docs.push(ParameterDoc {
-                    pattern: doc_pat,
-                    ty,
+                    pattern: *pat.clone(),
+                    ty: *ty.clone(),
                     docs,
-                    default: doc_default,
+                    default: default.as_ref().map(|d| d.inner().clone()),
+                });
+
+                parameters.push(Parameter {
+                    pattern: *pat.clone(),
+                    default,
                 });
             }
         }
@@ -136,7 +135,11 @@ fn extract_parameters_and_docs(
     Ok((parameters, parameter_docs))
 }
 
-fn generate_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
+fn generate_fn_docs<'a>(
+    attrs: &'a [Attribute],
+    name: &'a Ident,
+    fn_path: Option<String>,
+) -> TokenStream {
     let mut has_doc_comment = false;
 
     let fn_docs = attrs
@@ -157,10 +160,16 @@ fn generate_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream 
         quote! {}
     };
 
-    let link_to_fn = LitStr::new(
-        &format!("Wrapper macro for function [`{}()`].", quote!(#name)),
-        name.span(),
-    );
+    let link_doc = if let Some(fn_path) = fn_path {
+        format!(
+            "Wrapper macro for function [`{}`]({}::{}()).",
+            name, fn_path, name
+        )
+    } else {
+        format!("Wrapper macro for function [`{}`]({}()).", name, name)
+    };
+
+    let link_to_fn = LitStr::new(&link_doc, name.span());
 
     quote! {
         #(#fn_docs)*
@@ -292,4 +301,35 @@ where
         }
     }
     ret
+}
+
+fn simple_path_to_string(
+    Path {
+        leading_colon,
+        segments,
+    }: &Path,
+) -> String {
+    if segments.is_empty() {
+        return String::new();
+    }
+
+    let mut buf = String::with_capacity(segments.len() * 2);
+
+    if leading_colon.is_some() {
+        buf.push_str("::");
+    }
+
+    let mut first = true;
+
+    segments.iter().for_each(|PathSegment { ident, .. }| {
+        if first {
+            first = false;
+        } else {
+            buf.push_str("::");
+        }
+
+        buf.push_str(&ident.to_string());
+    });
+
+    buf
 }

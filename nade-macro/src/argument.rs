@@ -5,21 +5,33 @@ use syn::{
 };
 
 pub(crate) enum Argument {
-    Positioned { value: Expr },
-    Named { pattern: Pat, value: Expr },
+    Positioned {
+        value: Expr,
+    },
+    Named {
+        pattern: Pat,
+        eq_token: Token![=],
+        value: Expr,
+    },
 }
 
 impl Parse for Argument {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let test = input.fork();
-        let argument = if test.call(Pat::parse_single).is_ok() && test.peek(Token![=]) {
-            let pattern = input.call(Pat::parse_single)?;
-            input.parse::<Token![=]>()?;
-            let value = input.parse::<Expr>()?;
-            Argument::Named { pattern, value }
+        let is_named = {
+            let test = input.fork();
+            test.call(Pat::parse_single).is_ok() && test.peek(Token![=])
+        };
+
+        let argument = if is_named {
+            Argument::Named {
+                pattern: input.call(Pat::parse_single)?,
+                eq_token: input.parse::<Token![=]>()?,
+                value: input.parse::<Expr>()?,
+            }
         } else {
-            let value = input.parse::<Expr>()?;
-            Argument::Positioned { value }
+            Argument::Positioned {
+                value: input.parse::<Expr>()?,
+            }
         };
 
         Ok(argument)
@@ -30,9 +42,13 @@ impl ToTokens for Argument {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         match self {
             Argument::Positioned { value } => value.to_tokens(tokens),
-            Argument::Named { pattern, value } => {
+            Argument::Named {
+                pattern,
+                eq_token,
+                value,
+            } => {
                 pattern.to_tokens(tokens);
-                <Token![=]>::default().to_tokens(tokens);
+                eq_token.to_tokens(tokens);
                 value.to_tokens(tokens);
             }
         }

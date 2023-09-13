@@ -11,7 +11,7 @@ pub mod foo {
         ($($arg:tt)*) => {
             $crate::nade_helper!(
                 ($($arg)*)
-                (a, b = $crate::foo::aaa(), c = 4)
+                (a: u32, b: u32 = $crate::foo::aaa(), c: u32 = 4)
                 ($crate::foo::bar)
             )
         };

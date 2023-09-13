@@ -71,7 +71,12 @@ fn extract_parameters_and_docs(
             FnArg::Receiver(r) => {
                 return Err(syn::Error::new(r.span(), "`self` is not support"));
             }
-            FnArg::Typed(PatType { attrs, pat, ty, .. }) => {
+            FnArg::Typed(PatType {
+                attrs,
+                pat,
+                colon_token,
+                ty,
+            }) => {
                 let mut nade_attrs = drain_filter(attrs, |attr| attr.path().is_ident("nade"));
 
                 if nade_attrs.len() > 1 {
@@ -130,10 +135,12 @@ fn extract_parameters_and_docs(
                     default: default.as_ref().map(|d| d.inner().clone()),
                 });
 
-                parameters.push(Parameter {
-                    pattern: *pat.clone(),
+                parameters.push(Parameter::new(
+                    *pat.clone(),
+                    *colon_token,
+                    *ty.clone(),
                     default,
-                });
+                ));
             }
         }
     }

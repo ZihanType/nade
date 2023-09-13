@@ -108,14 +108,14 @@ fn match_one_parameter(
         let span = arg.span();
 
         match arg {
-            Argument::Named { pattern, value } => {
-                if *pattern == parameter.pattern {
+            Argument::Named { pattern, value, .. } => {
+                if *pattern == parameter.pat {
                     if named.is_some() {
                         return Err(syn::Error::new(
                             span,
                             format_args!(
                                 "parameter `{}` is specified multiple times by named",
-                                pattern.to_token_stream()
+                                parameter.to_token_stream()
                             ),
                         ));
                     }
@@ -136,7 +136,7 @@ fn match_one_parameter(
     if let (Some((named, _)), Some((positioned, _))) = (named, positioned) {
         let msg = format!(
             "parameter `{}` is specified both by named and positioned",
-            parameter.pattern.to_token_stream()
+            parameter.to_token_stream()
         );
 
         macro_rules! err {
@@ -156,7 +156,7 @@ fn match_one_parameter(
             Span::call_site(),
             format_args!(
                 "parameter `{}` is not specified",
-                parameter.pattern.to_token_stream()
+                parameter.to_token_stream()
             ),
         ));
     }
@@ -166,7 +166,7 @@ fn match_one_parameter(
         .unwrap_or_else(|| {
             positioned
                 .map(|(_, p)| MaybeStartsWithDollar::Normal(p.clone()))
-                .unwrap_or_else(|| parameter.default.unwrap())
+                .unwrap_or_else(|| parameter.default.unwrap().1)
         });
 
     Ok(fn_arg)

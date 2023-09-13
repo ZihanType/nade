@@ -9,12 +9,18 @@ use crate::{
     maybe_starts_with_dollar::{MaybeStartsWithDollar, StartsWithDollar},
     parameter::Parameter,
     parameter_doc::ParameterDoc,
+    path_attribute::{PathAttribute, SimplePathAttribute},
 };
 
 pub(crate) fn generate(
     module_path: Option<StartsWithDollar<Path>>,
     fun: &mut ItemFn,
 ) -> syn::Result<TokenStream> {
+    let SimplePathAttribute {
+        macro_v: macro_v_path,
+        nade_helper: nade_helper_path,
+    } = PathAttribute::try_from(&mut fun.attrs)?.simplify();
+
     let (parameters, parameter_docs) = extract_parameters_and_docs(fun)?;
 
     let name = &fun.sig.ident;
@@ -29,8 +35,6 @@ pub(crate) fn generate(
 
     let parameter_docs = generate_parameter_docs(parameter_docs);
 
-    let macro_v_path = quote!(::nade::__internal);
-    let nade_helper_path = quote!($crate);
     let fn_path = module_path.map(|path| quote!(#path::));
 
     let expand = quote! {

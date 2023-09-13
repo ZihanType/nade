@@ -4,6 +4,7 @@ mod nade;
 mod nade_helper;
 mod parameter;
 mod parameter_doc;
+mod path_attribute;
 
 use maybe_starts_with_dollar::StartsWithDollar;
 use nade_helper::NadeHelper;

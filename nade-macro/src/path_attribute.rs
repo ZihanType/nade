@@ -29,7 +29,7 @@ impl PathAttribute {
         parse_path!(macro_v);
         parse_path!(nade_helper);
 
-        Ok(())
+        Err(meta.error("the argument must be one of: `macro_v`, `nade_helper`"))
     }
 
     pub(crate) fn simplify(self) -> SimplePathAttribute {

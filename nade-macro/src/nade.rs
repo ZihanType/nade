@@ -2,8 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
     parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, ExprLit, File, FnArg, Ident, Item,
-    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, Pat, PatType, Path, PathSegment,
-    ReturnType, Type,
+    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, Pat, PatType, Path, ReturnType, Type,
 };
 
 use crate::{
@@ -26,18 +25,7 @@ pub(crate) fn generate(
 
     let name = &fun.sig.ident;
 
-    let fn_docs = generate_fn_docs(
-        &fun.attrs,
-        name,
-        module_path
-            .as_ref()
-            .map(|path| {
-                let mut path = simple_path_to_string(&path.inner);
-                path.push_str("::");
-                path
-            })
-            .unwrap_or_default(),
-    );
+    let fn_docs = generate_fn_docs(&fun.attrs, name);
 
     let vis = &fun.vis;
 
@@ -157,11 +145,7 @@ fn extract_parameters_and_docs(
     Ok((parameters, parameter_docs))
 }
 
-fn generate_fn_docs<'a>(
-    attrs: &'a [Attribute],
-    name: &'a Ident,
-    module_path: String,
-) -> TokenStream {
+fn generate_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
     let mut has_doc_comment = false;
 
     let fn_docs = attrs
@@ -182,10 +166,7 @@ fn generate_fn_docs<'a>(
         quote! {}
     };
 
-    let link_doc = format!(
-        "Wrapper macro for function [`{}`]({}{}()).",
-        name, module_path, name
-    );
+    let link_doc = format!("Wrapper macro for function [`{}`]({}()).", name, name);
 
     let link_to_fn = LitStr::new(&link_doc, name.span());
 
@@ -303,37 +284,6 @@ where
         }
     }
     ret
-}
-
-fn simple_path_to_string(
-    Path {
-        leading_colon,
-        segments,
-    }: &Path,
-) -> String {
-    if segments.is_empty() {
-        return String::new();
-    }
-
-    let mut buf = String::with_capacity(segments.len() * 2);
-
-    if leading_colon.is_some() {
-        buf.push_str("::");
-    }
-
-    let mut first = true;
-
-    segments.iter().for_each(|PathSegment { ident, .. }| {
-        if first {
-            first = false;
-        } else {
-            buf.push_str("::");
-        }
-
-        buf.push_str(&ident.to_string());
-    });
-
-    buf
 }
 
 fn item_to_file(item: Item) -> File {

@@ -2,7 +2,8 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
     parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, ExprLit, File, FnArg, Ident, Item,
-    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, PatType, Path, PathSegment,
+    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, Pat, PatType, Path, PathSegment,
+    ReturnType, Type,
 };
 
 use crate::{
@@ -42,6 +43,8 @@ pub(crate) fn generate(
 
     let parameter_docs = generate_parameter_docs(parameter_docs);
 
+    let return_doc = generate_return_doc(&fun.sig.output);
+
     let module_path = module_path.map(|path| quote!(#path::));
 
     let expand = quote! {
@@ -51,6 +54,7 @@ pub(crate) fn generate(
         #[#macro_v_path::macro_v(#vis)]
         #fn_docs
         #parameter_docs
+        #return_doc
         macro_rules! #name {
             ($($arguments:tt)*) => {
                 #nade_helper_path::nade_helper!(
@@ -212,44 +216,14 @@ fn generate_one_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
         default,
     } = parameter_doc;
 
-    let type_item: Item = parse_quote! {
-        type SomeType = #ty;
-    };
+    let pretty_pat = generate_pretty_pat(&pattern);
+    let pretty_ty = generate_pretty_ty(&ty);
 
-    let file = File {
-        shebang: None,
-        attrs: vec![],
-        items: vec![type_item],
-    };
+    let pretty_expr = default
+        .map(|expr| format!(" = {}", generate_pretty_expr(&expr)))
+        .unwrap_or_default();
 
-    let pretty_ty = prettyplease::unparse(&file);
-    let pretty_ty = &pretty_ty[16..&pretty_ty.len() - 2];
-
-    let parameter_define = if let Some(default) = default {
-        let expr_item: Item = parse_quote! {
-            fn a() {
-                let _ = #default;
-            }
-        };
-
-        let file = File {
-            shebang: None,
-            attrs: vec![],
-            items: vec![expr_item],
-        };
-
-        let pretty_expr = prettyplease::unparse(&file);
-        let pretty_expr = &pretty_expr[21..&pretty_expr.len() - 4];
-
-        format!(
-            "- **{}**: [`{}`] = {}",
-            quote!(#pattern),
-            pretty_ty,
-            pretty_expr
-        )
-    } else {
-        format!("- **{}**: [`{}`]", quote!(#pattern), pretty_ty)
-    };
+    let parameter_define = format!("- **{}** : [`{}`]{}", pretty_pat, pretty_ty, pretty_expr);
 
     let parameter_define = LitStr::new(&parameter_define, pattern.span());
 
@@ -267,6 +241,20 @@ fn generate_one_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
     quote! {
         #[doc = #parameter_define]
         #(#[doc = #parameter_docs])*
+    }
+}
+
+fn generate_return_doc(output: &ReturnType) -> TokenStream {
+    let ty_doc = match output {
+        ReturnType::Default => "[`()`](unit)".to_string(),
+        ReturnType::Type(_, ty) => {
+            format!("[`{}`]", generate_pretty_ty(ty))
+        }
+    };
+
+    quote! {
+        #[doc = "# Return"]
+        #[doc = #ty_doc]
     }
 }
 
@@ -346,4 +334,55 @@ fn simple_path_to_string(
     });
 
     buf
+}
+
+fn item_to_file(item: Item) -> File {
+    File {
+        shebang: None,
+        attrs: vec![],
+        items: vec![item],
+    }
+}
+
+fn generate_pretty_pat(pat: &Pat) -> String {
+    let pat_item: Item = parse_quote! {
+        fn a() {
+            let #pat = todo!();
+        }
+    };
+
+    let file = item_to_file(pat_item);
+
+    let pretty_pat = prettyplease::unparse(&file);
+    let pretty_pat = &pretty_pat[17..&pretty_pat.len() - 14];
+
+    pretty_pat.to_string()
+}
+
+fn generate_pretty_ty(ty: &Type) -> String {
+    let type_item: Item = parse_quote! {
+        type SomeType = #ty;
+    };
+
+    let file = item_to_file(type_item);
+
+    let pretty_ty = prettyplease::unparse(&file);
+    let pretty_ty = &pretty_ty[16..&pretty_ty.len() - 2];
+
+    pretty_ty.to_string()
+}
+
+fn generate_pretty_expr(expr: &Expr) -> String {
+    let expr_item: Item = parse_quote! {
+        fn a() {
+            let _ = #expr;
+        }
+    };
+
+    let file = item_to_file(expr_item);
+
+    let pretty_expr = prettyplease::unparse(&file);
+    let pretty_expr = &pretty_expr[21..&pretty_expr.len() - 4];
+
+    pretty_expr.to_string()
 }

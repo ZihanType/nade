@@ -25,17 +25,19 @@ pub(crate) fn generate(
 
     let name = &fun.sig.ident;
 
-    let fn_path = module_path
-        .as_ref()
-        .map(|path| simple_path_to_string(&path.inner));
-
-    let fn_docs = generate_fn_docs(&fun.attrs, name, fn_path);
+    let fn_docs = generate_fn_docs(
+        &fun.attrs,
+        name,
+        module_path
+            .as_ref()
+            .map(|path| simple_path_to_string(&path.inner)),
+    );
 
     let vis = &fun.vis;
 
     let parameter_docs = generate_parameter_docs(parameter_docs);
 
-    let fn_path = module_path.map(|path| quote!(#path::));
+    let module_path = module_path.map(|path| quote!(#path::));
 
     let expand = quote! {
         #[allow(clippy::too_many_arguments)]
@@ -48,8 +50,8 @@ pub(crate) fn generate(
             ($($arguments:tt)*) => {
                 #nade_helper_path::nade_helper!(
                     ($($arguments)*)
-                    (#(#parameters),*)
-                    (#fn_path #name)
+                    (#(#parameters,)*)
+                    (#module_path #name)
                 )
             }
         }
@@ -142,7 +144,7 @@ fn extract_parameters_and_docs(
 fn generate_fn_docs<'a>(
     attrs: &'a [Attribute],
     name: &'a Ident,
-    fn_path: Option<String>,
+    module_path: Option<String>,
 ) -> TokenStream {
     let mut has_doc_comment = false;
 
@@ -164,10 +166,10 @@ fn generate_fn_docs<'a>(
         quote! {}
     };
 
-    let link_doc = if let Some(fn_path) = fn_path {
+    let link_doc = if let Some(module_path) = module_path {
         format!(
             "Wrapper macro for function [`{}`]({}::{}()).",
-            name, fn_path, name
+            name, module_path, name
         )
     } else {
         format!("Wrapper macro for function [`{}`]({}()).", name, name)

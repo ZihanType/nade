@@ -12,7 +12,7 @@ mod foo1 {
 mod foo2 {
     use nade::nade;
 
-    #[nade($crate::foo2)]
+    #[nade(module_path = $crate::foo2)]
     pub fn bar() -> usize {
         1
     }

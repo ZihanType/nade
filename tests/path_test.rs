@@ -3,7 +3,7 @@ pub use nade::base::*;
 pub mod foo {
     use nade::nade;
 
-    #[nade($crate::foo)]
+    #[nade(module_path = $crate::foo)]
     pub fn bar(#[nade($crate::foo::baz())] a: usize) -> usize {
         a
     }
@@ -15,7 +15,7 @@ pub mod foo {
 
 use nade::nade;
 
-#[nade($crate)]
+#[nade(module_path = $crate)]
 pub fn bar(#[nade($crate::baz())] a: usize) -> usize {
     a
 }

@@ -30,7 +30,12 @@ pub(crate) fn generate(
         name,
         module_path
             .as_ref()
-            .map(|path| simple_path_to_string(&path.inner)),
+            .map(|path| {
+                let mut path = simple_path_to_string(&path.inner);
+                path.push_str("::");
+                path
+            })
+            .unwrap_or_default(),
     );
 
     let vis = &fun.vis;
@@ -151,7 +156,7 @@ fn extract_parameters_and_docs(
 fn generate_fn_docs<'a>(
     attrs: &'a [Attribute],
     name: &'a Ident,
-    module_path: Option<String>,
+    module_path: String,
 ) -> TokenStream {
     let mut has_doc_comment = false;
 
@@ -173,14 +178,10 @@ fn generate_fn_docs<'a>(
         quote! {}
     };
 
-    let link_doc = if let Some(module_path) = module_path {
-        format!(
-            "Wrapper macro for function [`{}`]({}::{}()).",
-            name, module_path, name
-        )
-    } else {
-        format!("Wrapper macro for function [`{}`]({}()).", name, name)
-    };
+    let link_doc = format!(
+        "Wrapper macro for function [`{}`]({}{}()).",
+        name, module_path, name
+    );
 
     let link_to_fn = LitStr::new(&link_doc, name.span());
 

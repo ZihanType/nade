@@ -5,7 +5,6 @@ use syn::{
     Token,
 };
 
-#[derive(Clone)]
 pub(crate) enum MaybeStartsWithDollar<T> {
     StartsWithDollar(StartsWithDollar<T>),
     Normal(T),
@@ -39,19 +38,20 @@ impl<T> MaybeStartsWithDollar<T> {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct StartsWithDollar<T> {
+    dollar_token: Token![$],
     pub(crate) inner: T,
 }
 
 impl<T: Parse> Parse for StartsWithDollar<T> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.parse::<Token![$]>()?;
+        let dollar_token = input.parse::<Token![$]>()?;
 
         let lookahead = input.lookahead1();
 
         if lookahead.peek(Token![crate]) {
             Ok(Self {
+                dollar_token,
                 inner: input.parse()?,
             })
         } else {
@@ -62,7 +62,7 @@ impl<T: Parse> Parse for StartsWithDollar<T> {
 
 impl<T: ToTokens> ToTokens for StartsWithDollar<T> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        <Token![$]>::default().to_tokens(tokens);
+        self.dollar_token.to_tokens(tokens);
         self.inner.to_tokens(tokens);
     }
 }

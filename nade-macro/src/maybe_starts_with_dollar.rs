@@ -36,11 +36,24 @@ impl<T> MaybeStartsWithDollar<T> {
             MaybeStartsWithDollar::Normal(n) => n,
         }
     }
+
+    pub(crate) fn as_ref(&self) -> MaybeStartsWithDollar<&T> {
+        match self {
+            MaybeStartsWithDollar::StartsWithDollar(StartsWithDollar {
+                dollar_token,
+                inner,
+            }) => MaybeStartsWithDollar::StartsWithDollar(StartsWithDollar {
+                dollar_token: *dollar_token,
+                inner,
+            }),
+            MaybeStartsWithDollar::Normal(n) => MaybeStartsWithDollar::Normal(n),
+        }
+    }
 }
 
 pub(crate) struct StartsWithDollar<T> {
     dollar_token: Token![$],
-    pub(crate) inner: T,
+    inner: T,
 }
 
 impl<T: Parse> Parse for StartsWithDollar<T> {

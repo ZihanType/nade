@@ -52,7 +52,7 @@ pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
     let mut fn_args = Vec::with_capacity(paras_len);
     let mut matched_args_indexes: Vec<usize> = Vec::with_capacity(args_len);
 
-    for (para_idx, para) in parameters.into_iter().enumerate() {
+    for (para_idx, para) in parameters.iter().enumerate() {
         fn_args.push(match_one_parameter(
             &mut matched_args_indexes,
             para_idx,
@@ -95,12 +95,12 @@ pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
     Ok(expand)
 }
 
-fn match_one_parameter(
+fn match_one_parameter<'a>(
     matched_args_indexes: &mut Vec<usize>,
     parameter_index: usize,
-    parameter: Parameter,
-    arguments: &Punctuated<Argument, Token![,]>,
-) -> syn::Result<MaybeStartsWithDollar<Expr>> {
+    parameter: &'a Parameter,
+    arguments: &'a Punctuated<Argument, Token![,]>,
+) -> syn::Result<MaybeStartsWithDollar<&'a Expr>> {
     let mut named: Option<(Span, &Expr)> = None;
     let mut positioned: Option<(Span, &Expr)> = None;
 
@@ -162,11 +162,11 @@ fn match_one_parameter(
     }
 
     let fn_arg = named
-        .map(|(_, n)| MaybeStartsWithDollar::Normal(n.clone()))
+        .map(|(_, n)| MaybeStartsWithDollar::Normal(n))
         .unwrap_or_else(|| {
             positioned
-                .map(|(_, p)| MaybeStartsWithDollar::Normal(p.clone()))
-                .unwrap_or_else(|| parameter.default.unwrap().1)
+                .map(|(_, p)| MaybeStartsWithDollar::Normal(p))
+                .unwrap_or_else(|| parameter.default.as_ref().unwrap().1.as_ref())
         });
 
     Ok(fn_arg)

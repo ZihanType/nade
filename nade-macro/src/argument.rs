@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{
     parse::{Parse, ParseStream},
@@ -39,7 +40,7 @@ impl Parse for Argument {
 }
 
 impl ToTokens for Argument {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
             Argument::Positioned { value } => value.to_tokens(tokens),
             Argument::Named {

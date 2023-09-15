@@ -184,7 +184,7 @@ fn generate_parameter_docs(docs: Vec<ParameterDoc>) -> TokenStream {
 
     let docs = docs.into_iter().map(generate_one_parameter_doc);
     quote! {
-        #[doc = "# Parameters"]
+        #[doc = "## Parameters"]
         #(#docs)*
     }
 }
@@ -234,7 +234,7 @@ fn generate_return_doc(output: &ReturnType) -> TokenStream {
     };
 
     quote! {
-        #[doc = "# Return"]
+        #[doc = "## Return"]
         #[doc = #ty_doc]
     }
 }

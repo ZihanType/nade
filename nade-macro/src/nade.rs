@@ -97,7 +97,6 @@ fn extract_parameters_and_docs(
                 let default = match nade_attrs.pop() {
                     Some(nade_attr) => {
                         let expr = extract_parameter_default(nade_attr)?;
-                        check_unexpected_expr_type(expr.inner())?;
                         Some(expr)
                     }
                     None => None,
@@ -240,9 +239,7 @@ fn generate_return_doc(output: &ReturnType) -> TokenStream {
 }
 
 fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDollar<Expr>> {
-    let meta = attr.meta;
-
-    match meta {
+    let res = match attr.meta {
         Meta::Path(_) => Ok(MaybeStartsWithDollar::Normal(parse_quote!(
             ::core::default::Default::default()
         ))),
@@ -251,21 +248,21 @@ fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDoll
             a.span(),
             "The `#[nade]` attribute does not support `#[nade = ..]`",
         )),
-    }
-}
+    };
 
-fn check_unexpected_expr_type(expr: &Expr) -> syn::Result<()> {
-    if let Expr::Assign(_) = expr {
-        Err(syn::Error::new(
-            expr.span(),
-            "assignment expression is not supported \
-                because it is not possible to distinguish \
-                whether it is a named general expression \
-                or a non-named assignment expression.",
-        ))
-    } else {
-        Ok(())
+    if let Ok(expr) = &res {
+        if let Expr::Assign(_) = expr.inner() {
+            return Err(syn::Error::new(
+                expr.span(),
+                "assignment expression is not supported \
+                    because it is not possible to distinguish \
+                    whether it is a named general expression \
+                    or a non-named assignment expression.",
+            ));
+        }
     }
+
+    res
 }
 
 // implemented manually because Vec::drain_filter is nightly only

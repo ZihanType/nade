@@ -77,7 +77,8 @@ fn extract_parameters_and_docs(
                 let mut nade_attrs = drain_filter(attrs, |attr| attr.path().is_ident("nade"));
 
                 if nade_attrs.len() > 1 {
-                    const MSG: &str = "`#[nade(..)]` can only be used once per parameter";
+                    const MSG: &str =
+                        "the `#[nade(..)]` attribute can only be used once per parameter";
 
                     if let Some(e) = nade_attrs
                         .iter()
@@ -246,7 +247,7 @@ fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDoll
         Meta::List(MetaList { tokens, .. }) => syn::parse2(tokens),
         Meta::NameValue(a) => Err(syn::Error::new(
             a.span(),
-            "The `#[nade]` attribute does not support `#[nade = ..]`",
+            "the `#[nade]` attribute does not support `#[nade = ..]`",
         )),
     };
 

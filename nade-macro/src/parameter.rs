@@ -5,13 +5,13 @@ use syn::{
     Expr, Pat, Token, Type,
 };
 
-use crate::maybe_starts_with_dollar::MaybeStartsWithDollar;
+use crate::maybe_start_with_dollar::MaybeStartWithDollar;
 
 pub(crate) struct Parameter {
     pub(crate) pat: Pat,
     colon_token: Token![:],
     ty: Type,
-    pub(crate) default: Option<(Token![=], MaybeStartsWithDollar<Expr>)>,
+    pub(crate) default: Option<(Token![=], MaybeStartWithDollar<Expr>)>,
 }
 
 impl Parameter {
@@ -19,7 +19,7 @@ impl Parameter {
         pat: Pat,
         colon_token: Token![:],
         ty: Type,
-        default: Option<MaybeStartsWithDollar<Expr>>,
+        default: Option<MaybeStartWithDollar<Expr>>,
     ) -> Self {
         Self {
             pat,

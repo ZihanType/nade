@@ -1,14 +1,14 @@
 use syn::{meta::ParseNestedMeta, parse_quote, Attribute, Path};
 
-use crate::maybe_starts_with_dollar::MaybeStartsWithDollar;
+use crate::maybe_start_with_dollar::MaybeStartWithDollar;
 
 #[derive(Default)]
-pub(crate) struct PathAttribute {
-    macro_v: Option<MaybeStartsWithDollar<Path>>,
-    nade_helper: Option<MaybeStartsWithDollar<Path>>,
+struct PathAttrOptions {
+    macro_v: Option<MaybeStartWithDollar<Path>>,
+    nade_helper: Option<MaybeStartWithDollar<Path>>,
 }
 
-impl PathAttribute {
+impl PathAttrOptions {
     fn parse_meta(&mut self, meta: ParseNestedMeta) -> syn::Result<()> {
         macro_rules! parse_path {
             ($argument:tt) => {
@@ -32,24 +32,19 @@ impl PathAttribute {
         Err(meta.error("the argument must be one of: `macro_v`, `nade_helper`"))
     }
 
-    pub(crate) fn simplify(self) -> SimplePathAttribute {
-        let PathAttribute {
-            macro_v,
-            nade_helper,
-        } = self;
-
-        SimplePathAttribute {
-            macro_v: macro_v.unwrap_or_else(|| parse_quote!(::nade::__internal)),
-            nade_helper: nade_helper.unwrap_or_else(|| parse_quote!($crate)),
-        }
+    fn parse_attr(&mut self, attr: &Attribute) -> syn::Result<()> {
+        attr.parse_nested_meta(|meta| self.parse_meta(meta))
     }
 }
 
-impl TryFrom<&mut Vec<Attribute>> for PathAttribute {
-    type Error = syn::Error;
+pub(crate) struct PathAttr {
+    pub(crate) macro_v: MaybeStartWithDollar<Path>,
+    pub(crate) nade_helper: MaybeStartWithDollar<Path>,
+}
 
-    fn try_from(attrs: &mut Vec<Attribute>) -> Result<Self, Self::Error> {
-        let mut path_attribute = PathAttribute::default();
+impl PathAttr {
+    pub(crate) fn parse_attrs(attrs: &mut Vec<Attribute>) -> syn::Result<Self> {
+        let mut options = PathAttrOptions::default();
         let mut errors = Vec::new();
 
         attrs.retain(|attr| {
@@ -57,7 +52,7 @@ impl TryFrom<&mut Vec<Attribute>> for PathAttribute {
                 return true;
             }
 
-            if let Err(e) = attr.parse_nested_meta(|meta| path_attribute.parse_meta(meta)) {
+            if let Err(e) = options.parse_attr(attr) {
                 errors.push(e);
             }
 
@@ -71,11 +66,14 @@ impl TryFrom<&mut Vec<Attribute>> for PathAttribute {
             return Err(e);
         }
 
-        Ok(path_attribute)
-    }
-}
+        let PathAttrOptions {
+            macro_v,
+            nade_helper,
+        } = options;
 
-pub(crate) struct SimplePathAttribute {
-    pub(crate) macro_v: MaybeStartsWithDollar<Path>,
-    pub(crate) nade_helper: MaybeStartsWithDollar<Path>,
+        Ok(PathAttr {
+            macro_v: macro_v.unwrap_or_else(|| parse_quote!(::nade::__internal)),
+            nade_helper: nade_helper.unwrap_or_else(|| parse_quote!($crate)),
+        })
+    }
 }

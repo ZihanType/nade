@@ -9,13 +9,13 @@ use syn::{
 };
 
 use crate::{
-    argument::Argument, maybe_starts_with_dollar::MaybeStartsWithDollar, parameter::Parameter,
+    argument::Argument, maybe_start_with_dollar::MaybeStartWithDollar, parameter::Parameter,
 };
 
 pub(crate) struct NadeHelper {
     arguments: Punctuated<Argument, Token![,]>,
     parameters: Punctuated<Parameter, Token![,]>,
-    fn_path: MaybeStartsWithDollar<Path>,
+    fn_path: MaybeStartWithDollar<Path>,
 }
 
 impl Parse for NadeHelper {
@@ -29,7 +29,7 @@ impl Parse for NadeHelper {
 
         let arguments = arguments_paren.parse_terminated(Argument::parse, Token![,])?;
         let parameters = parameters_paren.parse_terminated(Parameter::parse, Token![,])?;
-        let fn_path = fn_path_paren.parse::<MaybeStartsWithDollar<Path>>()?;
+        let fn_path = fn_path_paren.parse::<MaybeStartWithDollar<Path>>()?;
 
         Ok(NadeHelper {
             arguments,
@@ -47,18 +47,14 @@ pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
     } = nade_helper;
 
     let args_len = arguments.len();
-    let paras_len = parameters.len();
+    let params_len = parameters.len();
 
-    let mut fn_args = Vec::with_capacity(paras_len);
+    let mut fn_args = Vec::with_capacity(params_len);
     let mut matched_args_indexes: Vec<usize> = Vec::with_capacity(args_len);
 
-    for (para_idx, para) in parameters.iter().enumerate() {
-        fn_args.push(match_one_parameter(
-            &mut matched_args_indexes,
-            para_idx,
-            para,
-            &arguments,
-        )?);
+    for (param_idx, param) in parameters.iter().enumerate() {
+        let arg = get_single_argument(&mut matched_args_indexes, param_idx, param, &arguments)?;
+        fn_args.push(arg);
     }
 
     if let Some(e) = arguments
@@ -74,7 +70,7 @@ pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
         .map(|arg| {
             syn::Error::new(
                 arg.span(),
-                format_args!(
+                format!(
                     "argument `{}` is not matched by any parameters",
                     arg.to_token_stream()
                 ),
@@ -95,12 +91,12 @@ pub(crate) fn generate(nade_helper: NadeHelper) -> syn::Result<TokenStream> {
     Ok(expand)
 }
 
-fn match_one_parameter<'a>(
+fn get_single_argument<'a>(
     matched_args_indexes: &mut Vec<usize>,
     parameter_index: usize,
     parameter: &'a Parameter,
     arguments: &'a Punctuated<Argument, Token![,]>,
-) -> syn::Result<MaybeStartsWithDollar<&'a Expr>> {
+) -> syn::Result<MaybeStartWithDollar<&'a Expr>> {
     let mut named: Option<(Span, &Expr)> = None;
     let mut positioned: Option<(Span, &Expr)> = None;
 
@@ -113,7 +109,7 @@ fn match_one_parameter<'a>(
                     if named.is_some() {
                         return Err(syn::Error::new(
                             span,
-                            format_args!(
+                            format!(
                                 "parameter `{}` is specified multiple times by named",
                                 parameter.to_token_stream()
                             ),
@@ -134,14 +130,15 @@ fn match_one_parameter<'a>(
     }
 
     if let (Some((named, _)), Some((positioned, _))) = (named, positioned) {
-        let msg = format!(
-            "parameter `{}` is specified both by named and positioned",
-            parameter.to_token_stream()
-        );
-
         macro_rules! err {
             ($span:expr) => {
-                syn::Error::new($span, &msg)
+                syn::Error::new(
+                    $span,
+                    format!(
+                        "parameter `{}` is specified both by named and positioned",
+                        parameter.to_token_stream()
+                    ),
+                )
             };
         }
 
@@ -154,7 +151,7 @@ fn match_one_parameter<'a>(
     if named.is_none() && positioned.is_none() && parameter.default.is_none() {
         return Err(syn::Error::new(
             Span::call_site(),
-            format_args!(
+            format!(
                 "parameter `{}` is not specified",
                 parameter.to_token_stream()
             ),
@@ -162,10 +159,10 @@ fn match_one_parameter<'a>(
     }
 
     let fn_arg = named
-        .map(|(_, n)| MaybeStartsWithDollar::Normal(n))
+        .map(|(_, n)| MaybeStartWithDollar::Normal(n))
         .unwrap_or_else(|| {
             positioned
-                .map(|(_, p)| MaybeStartsWithDollar::Normal(p))
+                .map(|(_, p)| MaybeStartWithDollar::Normal(p))
                 .unwrap_or_else(|| parameter.default.as_ref().unwrap().1.as_ref())
         });
 

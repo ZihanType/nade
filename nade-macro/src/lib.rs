@@ -1,5 +1,5 @@
 mod argument;
-mod maybe_starts_with_dollar;
+mod maybe_start_with_dollar;
 mod nade;
 mod nade_helper;
 mod parameter;
@@ -11,13 +11,13 @@ use proc_macro::TokenStream;
 use quote::ToTokens;
 use syn::{parse_macro_input, ItemFn, Path};
 
-use crate::maybe_starts_with_dollar::StartsWithDollar;
+use crate::maybe_start_with_dollar::StartWithDollar;
 
 #[proc_macro_attribute]
 pub fn nade(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut fun = parse_macro_input!(item as ItemFn);
 
-    let mut module_path: Option<StartsWithDollar<Path>> = None;
+    let mut module_path: Option<StartWithDollar<Path>> = None;
 
     let module_path_parser = syn::meta::parser(|meta| {
         if meta.path.is_ident("module_path") {

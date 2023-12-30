@@ -1,36 +1,34 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    parse_quote, spanned::Spanned, AttrStyle, Attribute, Expr, ExprLit, File, FnArg, Ident, Item,
-    ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, Pat, PatType, Path, ReturnType, Type,
+    parse_quote, punctuated::Punctuated, spanned::Spanned, AttrStyle, Attribute, Expr, ExprLit,
+    File, FnArg, Ident, Item, ItemFn, Lit, LitStr, Meta, MetaList, MetaNameValue, Pat, PatType,
+    Path, ReturnType, Token, Type,
 };
 
 use crate::{
-    maybe_starts_with_dollar::{MaybeStartsWithDollar, StartsWithDollar},
+    maybe_start_with_dollar::{MaybeStartWithDollar, StartWithDollar},
     parameter::Parameter,
     parameter_doc::ParameterDoc,
-    path_attribute::{PathAttribute, SimplePathAttribute},
+    path_attribute::PathAttr,
 };
 
 pub(crate) fn generate(
-    module_path: Option<StartsWithDollar<Path>>,
+    module_path: Option<StartWithDollar<Path>>,
     fun: &mut ItemFn,
 ) -> syn::Result<TokenStream> {
-    let SimplePathAttribute {
+    let PathAttr {
         macro_v: macro_v_path,
         nade_helper: nade_helper_path,
-    } = PathAttribute::try_from(&mut fun.attrs)?.simplify();
+    } = PathAttr::parse_attrs(&mut fun.attrs)?;
 
-    let (parameters, parameter_docs) = extract_parameters_and_docs(fun)?;
+    let (parameters, parameter_docs) = extract_parameters_and_docs(&mut fun.sig.inputs)?;
 
     let name = &fun.sig.ident;
-
-    let fn_docs = generate_fn_docs(&fun.attrs, name);
-
     let vis = &fun.vis;
 
+    let macro_docs = generate_macro_docs(&fun.attrs, name);
     let parameter_docs = generate_parameter_docs(parameter_docs);
-
     let return_doc = generate_return_doc(&fun.sig.output);
 
     let module_path = module_path.map(|path| quote!(#path::));
@@ -40,7 +38,7 @@ pub(crate) fn generate(
         #fun
 
         #[#macro_v_path::macro_v(#vis)]
-        #fn_docs
+        #macro_docs
         #parameter_docs
         #return_doc
         macro_rules! #name {
@@ -58,12 +56,12 @@ pub(crate) fn generate(
 }
 
 fn extract_parameters_and_docs(
-    fun: &mut ItemFn,
+    inputs: &mut Punctuated<FnArg, Token![,]>,
 ) -> syn::Result<(Vec<Parameter>, Vec<ParameterDoc>)> {
     let mut parameters = Vec::new();
     let mut parameter_docs = Vec::new();
 
-    for arg in fun.sig.inputs.iter_mut() {
+    for arg in inputs.iter_mut() {
         match arg {
             FnArg::Receiver(r) => {
                 return Err(syn::Error::new(r.span(), "`self` is not support"));
@@ -145,7 +143,7 @@ fn extract_parameters_and_docs(
     Ok((parameters, parameter_docs))
 }
 
-fn generate_fn_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
+fn generate_macro_docs<'a>(attrs: &'a [Attribute], name: &'a Ident) -> TokenStream {
     let mut has_doc_comment = false;
 
     let fn_docs = attrs
@@ -182,14 +180,14 @@ fn generate_parameter_docs(docs: Vec<ParameterDoc>) -> TokenStream {
         return quote! {};
     }
 
-    let docs = docs.into_iter().map(generate_one_parameter_doc);
+    let docs = docs.into_iter().map(generate_single_parameter_doc);
     quote! {
         #[doc = "## Parameters"]
         #(#docs)*
     }
 }
 
-fn generate_one_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
+fn generate_single_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
     let ParameterDoc {
         pattern,
         ty,
@@ -197,14 +195,17 @@ fn generate_one_parameter_doc(parameter_doc: ParameterDoc) -> TokenStream {
         default,
     } = parameter_doc;
 
-    let pretty_pat = generate_pretty_pat(&pattern);
+    let pretty_pattern = generate_pretty_pat(&pattern);
     let pretty_ty = generate_pretty_ty(&ty);
 
-    let pretty_expr = default
+    let pretty_default = default
         .map(|expr| format!(" = {}", generate_pretty_expr(&expr)))
         .unwrap_or_default();
 
-    let parameter_define = format!("- **{}** : [`{}`]{}", pretty_pat, pretty_ty, pretty_expr);
+    let parameter_define = format!(
+        "- **{}** : [`{}`]{}",
+        pretty_pattern, pretty_ty, pretty_default
+    );
 
     let parameter_define = LitStr::new(&parameter_define, pattern.span());
 
@@ -239,9 +240,9 @@ fn generate_return_doc(output: &ReturnType) -> TokenStream {
     }
 }
 
-fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDollar<Expr>> {
-    let res = match attr.meta {
-        Meta::Path(_) => Ok(MaybeStartsWithDollar::Normal(parse_quote!(
+fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartWithDollar<Expr>> {
+    let default = match attr.meta {
+        Meta::Path(_) => Ok(MaybeStartWithDollar::Normal(parse_quote!(
             ::core::default::Default::default()
         ))),
         Meta::List(MetaList { tokens, .. }) => syn::parse2(tokens),
@@ -249,21 +250,19 @@ fn extract_parameter_default(attr: Attribute) -> syn::Result<MaybeStartsWithDoll
             a.span(),
             "the `#[nade]` attribute does not support `#[nade = ..]`",
         )),
-    };
+    }?;
 
-    if let Ok(expr) = &res {
-        if let Expr::Assign(_) = expr.inner() {
-            return Err(syn::Error::new(
-                expr.span(),
-                "assignment expression is not supported \
-                    because it is not possible to distinguish \
-                    whether it is a named general expression \
-                    or a non-named assignment expression.",
-            ));
-        }
+    if let Expr::Assign(_) = default.inner() {
+        return Err(syn::Error::new(
+            default.span(),
+            "assignment expression is not supported \
+                because it is not possible to distinguish \
+                whether it is a named general expression \
+                or a non-named assignment expression.",
+        ));
     }
 
-    res
+    Ok(default)
 }
 
 // implemented manually because Vec::drain_filter is nightly only

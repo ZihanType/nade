@@ -5,58 +5,58 @@ use syn::{
     Token,
 };
 
-pub(crate) enum MaybeStartsWithDollar<T> {
-    StartsWithDollar(StartsWithDollar<T>),
+pub(crate) enum MaybeStartWithDollar<T> {
+    StartWithDollar(StartWithDollar<T>),
     Normal(T),
 }
 
-impl<T: Parse> Parse for MaybeStartsWithDollar<T> {
+impl<T: Parse> Parse for MaybeStartWithDollar<T> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(if input.peek(Token![$]) {
-            Self::StartsWithDollar(input.parse()?)
+            Self::StartWithDollar(input.parse()?)
         } else {
             Self::Normal(input.parse()?)
         })
     }
 }
 
-impl<T: ToTokens> ToTokens for MaybeStartsWithDollar<T> {
+impl<T: ToTokens> ToTokens for MaybeStartWithDollar<T> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            MaybeStartsWithDollar::StartsWithDollar(e) => e.to_tokens(tokens),
-            MaybeStartsWithDollar::Normal(e) => e.to_tokens(tokens),
+            MaybeStartWithDollar::StartWithDollar(e) => e.to_tokens(tokens),
+            MaybeStartWithDollar::Normal(e) => e.to_tokens(tokens),
         }
     }
 }
 
-impl<T> MaybeStartsWithDollar<T> {
+impl<T> MaybeStartWithDollar<T> {
     pub(crate) fn inner(&self) -> &T {
         match self {
-            MaybeStartsWithDollar::StartsWithDollar(s) => &s.inner,
-            MaybeStartsWithDollar::Normal(n) => n,
+            MaybeStartWithDollar::StartWithDollar(s) => &s.inner,
+            MaybeStartWithDollar::Normal(n) => n,
         }
     }
 
-    pub(crate) fn as_ref(&self) -> MaybeStartsWithDollar<&T> {
+    pub(crate) fn as_ref(&self) -> MaybeStartWithDollar<&T> {
         match self {
-            MaybeStartsWithDollar::StartsWithDollar(StartsWithDollar {
+            MaybeStartWithDollar::StartWithDollar(StartWithDollar {
                 dollar_token,
                 inner,
-            }) => MaybeStartsWithDollar::StartsWithDollar(StartsWithDollar {
+            }) => MaybeStartWithDollar::StartWithDollar(StartWithDollar {
                 dollar_token: *dollar_token,
                 inner,
             }),
-            MaybeStartsWithDollar::Normal(n) => MaybeStartsWithDollar::Normal(n),
+            MaybeStartWithDollar::Normal(n) => MaybeStartWithDollar::Normal(n),
         }
     }
 }
 
-pub(crate) struct StartsWithDollar<T> {
+pub(crate) struct StartWithDollar<T> {
     dollar_token: Token![$],
     inner: T,
 }
 
-impl<T: Parse> Parse for StartsWithDollar<T> {
+impl<T: Parse> Parse for StartWithDollar<T> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let dollar_token = input.parse::<Token![$]>()?;
 
@@ -73,7 +73,7 @@ impl<T: Parse> Parse for StartsWithDollar<T> {
     }
 }
 
-impl<T: ToTokens> ToTokens for StartsWithDollar<T> {
+impl<T: ToTokens> ToTokens for StartWithDollar<T> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.dollar_token.to_tokens(tokens);
         self.inner.to_tokens(tokens);
